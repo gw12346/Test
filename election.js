@@ -16,6 +16,9 @@ const { completeGame } = require('./end-game');
 const _ = require('lodash');
 const { makeReport } = require('../report.js');
 
+let ChancellorRejectsVeto;
+ChancellorRejectsVeto = false;
+
 const powerMapping = {
 	investigate: [investigateLoyalty, 'The president must investigate the party membership of another player.'],
 	deckpeek: [policyPeek, 'The president must examine the top 3 policies.'],
@@ -346,11 +349,11 @@ const selectPresidentVoteOnVeto = (passport, game, data) => {
 					game.private.unSeatedGameChats.push(chat);
 				}
 
-				publicPresident.cardStatus.isFlipped = false;
+				publicPresident.cardStatus.isFlipped = true;
 
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == true && ChancellorRejectsVeto == false) {
 					const chat = {
 						gameChat: true,
 						timestamp: new Date(),
@@ -463,7 +466,7 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 		}
 
 		publicChancellor.cardStatus = {
-			cardDisplayed: true,
+			cardDisplayed: false,
 			cardFront: 'ballot',
 			cardBack: {
 				cardName: data.vote ? 'ja' : 'nein'
@@ -500,7 +503,13 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 				publicChancellor.cardStatus.isFlipped = true;
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == false) {
+					ChancellorRejectsVeto = true;
+				}
+				if (data.vote == true) {
+					ChancellorRejectsVeto = false;
+				}
+				if (1) {
 					president.cardFlingerState = [
 						{
 							position: 'middle-left',
@@ -562,21 +571,6 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 							}
 						},
 						process.env.NODE_ENV === 'development' ? 100 : experiencedMode ? 500 : 1000
-					);
-				} else {
-					game.gameState.audioCue = 'failedVeto';
-					sendInProgressGameUpdate(game);
-					setTimeout(
-						() => {
-							game.gameState.audioCue = '';
-							publicChancellor.cardStatus.cardDisplayed = false;
-							chancellor.cardFlingerState = [];
-							setTimeout(() => {
-								publicChancellor.cardStatus.isFlipped = false;
-							}, 1000);
-							enactPolicy(game, game.private.currentElectionPolicies[0]);
-						},
-						process.env.NODE_ENV === 'development' ? 100 : experiencedMode ? 500 : 2000
 					);
 				}
 			},

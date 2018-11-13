@@ -16,6 +16,9 @@ const { completeGame } = require('./end-game');
 const _ = require('lodash');
 const { makeReport } = require('../report.js');
 
+let ChancellorRejectsVeto;
+ChancellorRejectsVeto = false;
+
 const powerMapping = {
 	investigate: [investigateLoyalty, 'The president must investigate the party membership of another player.'],
 	deckpeek: [policyPeek, 'The president must examine the top 3 policies.'],
@@ -278,7 +281,6 @@ const selectPresidentVoteOnVeto = (passport, game, data) => {
 	const chancellorIndex = game.publicPlayersState.findIndex(player => player.governmentStatus === 'isChancellor');
 	const publicChancellor = game.publicPlayersState[chancellorIndex];
 	const publicPresident = game.publicPlayersState[game.gameState.presidentIndex];
-
 	if (!president || president.userName !== passport.user) {
 		return;
 	}
@@ -346,11 +348,11 @@ const selectPresidentVoteOnVeto = (passport, game, data) => {
 					game.private.unSeatedGameChats.push(chat);
 				}
 
-				publicPresident.cardStatus.isFlipped = false;
+				publicPresident.cardStatus.isFlipped = true;
 
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == true && ChancellorRejectsVeto == false) {
 					const chat = {
 						gameChat: true,
 						timestamp: new Date(),
@@ -440,7 +442,7 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 
 	game.private.lock.selectPresidentVoteOnVeto = false;
 	if (
-		!game.private.lock.selectChancellorVoteOnVeto &&
+		!game.private.lock.selectChancellorVoteOnVeto &&		
 		chancellor &&
 		chancellor.cardFlingerState &&
 		chancellor.cardFlingerState.length &&
@@ -463,7 +465,7 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 		}
 
 		publicChancellor.cardStatus = {
-			cardDisplayed: true,
+			cardDisplayed: false,
 			cardFront: 'ballot',
 			cardBack: {
 				cardName: data.vote ? 'ja' : 'nein'
@@ -500,7 +502,10 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 				publicChancellor.cardStatus.isFlipped = true;
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == false) {
+					ChancellorRejectsVeto = true;
+				}
+				if (1) {
 					president.cardFlingerState = [
 						{
 							position: 'middle-left',

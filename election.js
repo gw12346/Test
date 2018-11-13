@@ -1,3 +1,5 @@
+let ChancellorRejectsVeto;
+ChancellorRejectsVeto = false;
 const { sendInProgressGameUpdate, sendInProgressModChatUpdate } = require('../util');
 const { startElection, shufflePolicies } = require('./common');
 const { sendGameList } = require('../user-requests');
@@ -279,10 +281,6 @@ const selectPresidentVoteOnVeto = (passport, game, data) => {
 	const publicChancellor = game.publicPlayersState[chancellorIndex];
 	const publicPresident = game.publicPlayersState[game.gameState.presidentIndex];
 
-	if (!president || president.userName !== passport.user) {
-		return;
-	}
-
 	game.private.summary = game.private.summary.updateLog({
 		presidentVeto: data.vote
 	});
@@ -346,11 +344,11 @@ const selectPresidentVoteOnVeto = (passport, game, data) => {
 					game.private.unSeatedGameChats.push(chat);
 				}
 
-				publicPresident.cardStatus.isFlipped = false;
+				publicPresident.cardStatus.isFlipped = true;
 
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == true && ChancellorRejectsVeto == false) {
 					const chat = {
 						gameChat: true,
 						timestamp: new Date(),
@@ -440,7 +438,6 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 
 	game.private.lock.selectPresidentVoteOnVeto = false;
 	if (
-		!game.private.lock.selectChancellorVoteOnVeto &&
 		chancellor &&
 		chancellor.cardFlingerState &&
 		chancellor.cardFlingerState.length &&
@@ -463,7 +460,7 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 		}
 
 		publicChancellor.cardStatus = {
-			cardDisplayed: true,
+			cardDisplayed: false,
 			cardFront: 'ballot',
 			cardBack: {
 				cardName: data.vote ? 'ja' : 'nein'
@@ -500,7 +497,10 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 				publicChancellor.cardStatus.isFlipped = true;
 				sendInProgressGameUpdate(game);
 
-				if (data.vote) {
+				if (data.vote == false) {
+					ChancellorRejectsVeto = true;
+				}
+				if (1) {
 					president.cardFlingerState = [
 						{
 							position: 'middle-left',
@@ -552,7 +552,7 @@ const selectChancellorVoteOnVeto = (passport, game, data) => {
 								game.gameState.timedModeEnabled = true;
 								game.private.timerId = setTimeout(
 									() => {
-										if (game.gameState.timedModeEnabled) {
+										if (game.gameState.timedModeEnabled == true) {
 											game.gameState.timedModeEnabled = false;
 											selectPresidentVoteOnVeto({ user: president.userName }, game, { vote: Boolean(Math.floor(Math.random() * 2)) });
 										}
